@@ -16,7 +16,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# PyG（没装会报错）
 try:
     from torch_geometric.nn import SAGEConv, GATConv
     from torch_geometric.utils import negative_sampling
