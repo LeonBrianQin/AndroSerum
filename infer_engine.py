@@ -293,14 +293,14 @@ def _build_bu_pack(
 
 
 PROMPT_BU_LOCAL = (
-    "你是一名 Android 恶意软件静态分析专家。\n"
-    "你将收到一个行为单元(BU)及其最相关的历史 prototype。\n"
-    "请只依据给定字段，输出一个 JSON：\n"
-    "1) 该 BU 的局部行为意图(local_intents)\n"
-    "2) 风险倾向(risk_signal: malicious|suspicious|benign|unknown)\n"
-    "3) 最相关 prototype 列表\n"
-    "4) 仅使用输入中可见的 bu_id / cluster_id / node_id 做支持引用。\n"
-    "不要给 APK 级最终结论，不要虚构 family。"
+    "You are an expert in static analysis of Android malware.\n"
+    "You will receive a Behavior Unit (BU) and its most relevant historical prototype.\n"
+    "Please output a JSON object based only on the given fields:\n"
+    "1) The local behavioral intent of this BU (local_intents)\n"
+    "2) The risk tendency (risk_signal: malicious|suspicious|benign|unknown)\n"
+    "3) A list of the most relevant prototypes\n"
+    "4) Supporting citations that use only bu_id / cluster_id / node_id visible in the input.\n"
+    "Do not provide an APK-level final conclusion, and do not fabricate any information."
 )
 
 SCHEMA_BU_LOCAL = {
@@ -317,14 +317,14 @@ SCHEMA_BU_LOCAL = {
 }
 
 PROMPT_APK_UPDATE = (
-    "你是一名 Android 恶意软件静态分析专家。\n"
-    "你会逐轮接收同一个 APK 的新增 BU 局部摘要。\n"
-    "请根据 previous_state 和 new_bu_summaries 增量更新 APK 级判断，输出完整 JSON 状态。\n"
-    "要求：\n"
-    "1) 只依据输入证据更新，不要遗忘 previous_state 中仍被支持的结论\n"
-    "2) 如果新增 BU 改变了旧判断，必须在 changed_fields 中说明\n"
-    "3) family 若证据不足必须为 unknown\n"
-    "4) support 只能引用输入中出现的 bu_id / cluster_id / node_id。"
+    "You are an expert in static analysis of Android malware.\n"
+    "You will receive newly added BU-level local summaries from the same APK across multiple rounds.\n"
+    "Please incrementally update the APK-level judgment based on previous_state and new_bu_summaries, and output the complete JSON state.\n"
+    "Requirements:\n"
+    "1) Update only based on the input evidence, and do not forget conclusions in previous_state that are still supported.\n"
+    "2) If a newly added BU changes a previous judgment, you must explain it in changed_fields.\n"
+    "3) family must be unknown if the evidence is insufficient.\n"
+    "4) support can only cite bu_id / cluster_id / node_id that appear in the input."
 )
 
 SCHEMA_APK_STATE = {
@@ -341,10 +341,10 @@ SCHEMA_APK_STATE = {
 }
 
 PROMPT_FINAL_RECONCILE = (
-    "你是一名 Android 恶意软件静态分析专家。\n"
-    "你将收到一个 APK 的最终候选状态和所有 BU 局部摘要。\n"
-    "请做最后一致性整理：删除不被支持的结论，合并重复 behavior/mechanism，输出最终 JSON。\n"
-    "不要新增输入中没有支持的断言。"
+    "You are an expert in static analysis of Android malware.\n"
+    "You will receive the final candidate state of an APK and all BU-level local summaries.\n"
+    "Please perform a final consistency refinement: remove unsupported conclusions, merge duplicate behaviors/mechanisms, and output the final JSON.\n"
+    "Do not add assertions that are not supported by the input."
 )
 
 
@@ -420,7 +420,7 @@ def _normalize_state(apk_id: str, obj: Dict[str, Any], fallback: Dict[str, Any])
     )
     out["note"] = str(obj.get("note", fallback.get("note", "")))[:2000]
 
-    # 非 malicious 时不保留 family，防止“弱支持家族标签”
+    
     if out["verdict"] != "malicious":
         out["family"] = "unknown"
 
@@ -546,10 +546,6 @@ def _count_strong_malicious_signals(behavior_labels: List[str], mechanism_texts:
         "keylogging",
         "steal",
         "stolen",
-        "窃取",
-        "盗取",
-        "外传",
-        "勒索",
     ]
 
     hits = 0
@@ -569,7 +565,6 @@ def _apply_conservative_verdict_gate(state: Dict[str, Any], gate_cfg: Dict[str, 
     conf = max(0.0, min(100.0, _float(out.get("confidence"), 0.0)))
     out["confidence"] = conf
 
-    # benign / unknown 不保留 family，避免“低支持家族归因”
     if verdict != "malicious":
         out["family"] = "unknown"
         return out
