@@ -1,27 +1,6 @@
 # kb_builder.py
 # -*- coding: utf-8 -*-
-"""
-Stage 3: Behavior Knowledge Construction (BehaviorUnit KB)
 
-(方案B) 把“正则/关键词线索”下沉到 KB：
-  symbolic_info.hint_set = ["HINT:NETWORK", "LIT:URL_PRESENT", ...]
-并修复两类误报：
-  1) 反射误报：不再用 "invoke" 触发反射（smali 里 invoke-* 太常见）
-  2) base64 误报：不再对整段 smali 扫 base64；只对 const-string 字面量判定 base64-like
-同时：
-  - lexical_set 做稳定去重（保持顺序）
-  - years 支持字符串/范围/列表解析
-  - limit_apks 仅在正整数时截断（避免 0 误置空）
-
-新增（按你需求）：
-  - structure_info 做“紧凑化 + 去重”：
-      * nodes: [{id, sig}]（不再存 is_external/is_sensitive）
-      * edges: [[src_id, dst_id], ...]（只用编号、去重）
-      * node_id_map: {old_id: new_id}（便于回溯/调试）
-  - 兼容两种 raw_unit.edges 格式：
-      A) list[list[int]] / list[tuple[int,int]]  (典型：边用节点下标表示)
-      B) list[dict{src,dst,src_sig,dst_sig}]     (你后来贴的那种 verbose edge_index)
-"""
 
 import json
 import math
@@ -155,7 +134,7 @@ def get_smali_text(node: Dict[str, Any]) -> str:
 
 
 # ----------------------------
-# Hint extraction (修复版)
+# Hint extraction
 # ----------------------------
 
 _URL_RE = re.compile(r"https?://|ftp://", re.IGNORECASE)
@@ -168,7 +147,7 @@ _INTENT_GET_PARCELABLE_HINTS = (
     "Landroid/content/Intent;->getParcelableArrayListExtra",
 )
 
-# ✅ 修复：不再用 "invoke" 作为反射触发条件
+
 _REFLECTION_HINTS = (
     "Ljava/lang/reflect;",
     "Ljava/lang/Class;->forName",
@@ -237,12 +216,6 @@ def clean_lexical(items: List[str], limit: int) -> List[str]:
 
 
 def extract_hints_from_smali_text(smali_text: str) -> Set[str]:
-    """
-    Deterministic, low-false-positive hints from *smali text*.
-
-    ✅ 注意：不在这里做 BASE64 判定，避免对整段 smali 的误报；
-    base64-like 仅对 const-string 字面量进行判定（见 looks_like_base64_literal）.
-    """
     s = smali_text or ""
     out: Set[str] = set()
 
@@ -293,9 +266,6 @@ def extract_const_strings(smali_lines: List[str], limit: int) -> List[str]:
 
 
 def looks_like_base64_literal(s: str) -> bool:
-    """
-    ✅ 修复：base64-like 仅对 const-string 字面量判断
-    """
     s = (s or "").strip()
     if len(s) < 40:
         return False
@@ -490,11 +460,11 @@ def build_kb_unit_from_raw_unit(raw_unit: Dict[str, Any], cfg: KBConfig) -> Dict
             for p in perms:
                 perms_set.setdefault(str(p), [])
 
-    # ✅ dedup perms_set lists（修复：放到 anchors 循环外）
+   
     for perm, apis in list(perms_set.items()):
         perms_set[perm] = sorted(set(normalize_sig(x) for x in apis if x))
 
-    # ✅ base64-like 仅对 const-string 字面量判断
+    
     if any(looks_like_base64_literal(s) for s in lexical_set_raw):
         hint_set.add("LIT:BASE64_LIKE")
 
@@ -514,7 +484,7 @@ def build_kb_unit_from_raw_unit(raw_unit: Dict[str, Any], cfg: KBConfig) -> Dict
     unit_emb = pool_unit_embedding(nodes, cfg.pool_mode)
     semantic_info = {"unit_emb": unit_emb}
 
-    # ✅ NEW: compact structure_info (drop is_external/is_sensitive + dedup edges)
+    
     structure_info = compact_structure(nodes, edges_raw)
 
     # mining_meta = {"anchors_meta": anchors_meta}
@@ -596,11 +566,11 @@ def run_with_config(CONFIG: Dict[str, Any]) -> None:
     if single_apk:
         sp = Path(str(single_apk))
 
-        # 1) 直接传的是 out/<year>/<sha> 目录
+       
         if sp.is_dir():
             targets = [sp]
 
-        # 2) 传的是 APK 文件路径：.../<year>/<sha>.apk
+       
         elif sp.suffix.lower() == ".apk":
             year = sp.parent.name
             sha = sp.stem.upper()
@@ -608,7 +578,7 @@ def run_with_config(CONFIG: Dict[str, Any]) -> None:
             if cand.is_dir():
                 targets = [cand]
 
-        # 3) 兼容传裸 sha 或其他字符串的旧写法
+        
         else:
             apk_key = sp.stem.upper() if sp.suffix else str(single_apk).upper()
             for y in years:
