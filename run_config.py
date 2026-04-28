@@ -33,7 +33,7 @@ CONFIG = {
     # Data
     # -------------------------
     "apks_root": "downloaded_samples",
-    "years": "2014-2024",
+    "years": "2013-2025",
     "single_apk": "",
     "limit_apks": 0,
 
