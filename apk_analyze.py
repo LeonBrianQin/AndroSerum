@@ -1186,7 +1186,7 @@ def run_with_config(CONFIG: dict):
 
     weights_rel = (
             _pick(CONFIG, "bert_weights", "analyze_tools/weights")
-            or (CONFIG.get("analyze_tools") or {}).get("bert_weights")  # 兼容嵌套写法 analyze_tools: {weights: ...}
+            or (CONFIG.get("analyze_tools") or {}).get("bert_weights")  # analyze_tools: {weights: ...}
     )
 
     if not weights_rel:
