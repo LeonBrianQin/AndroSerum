@@ -172,7 +172,6 @@ CONFIG = {
     # "llm_proxy": "http://127.0.0.1:7890",
     "llm_proxy": "",
     "llm_provider": "",
-    # "llm_model": "openai/gpt-4o-mini",
     "llm_model": "",
     "llm_base_url": "",
     "llm_timeout_sec": 90,
